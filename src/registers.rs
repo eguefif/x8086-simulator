@@ -47,7 +47,7 @@ impl Registers {
             _ => print!("Unknow mod {:b}", rm),
         }
         if value != 0 {
-            print!("+ {}", value);
+            print!(" + {}", value);
         }
         print!("]");
     }

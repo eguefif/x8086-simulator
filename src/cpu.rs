@@ -24,9 +24,7 @@ impl Cpu {
             match (opcode.instruction, opcode.w, opcode.m) {
                 (0b100010, 0, 0b11) => self.mov8(opcode),
                 (0b100010, 1, 0b11) => self.mov16(opcode),
-                (0b100010, _, 0b0) => self.mov_memory(opcode),
-                (0b100010, _, 0b01) => self.mov_memory_8(opcode),
-                (0b100010, _, 0b10) => self.mov_memory_16(opcode),
+                (0b100010, _, _) => self.mov_memory(opcode),
                 _ => println!("Unknow opcode: {:?}", opcode),
             }
             if self.pc == 0xFFF || self.memory[self.pc as usize] == 0 {
@@ -35,96 +33,45 @@ impl Cpu {
         }
     }
 
-    fn mov_memory_16(&mut self, opcode: Opcode) {
-        print!("mov ");
-        let low = self.memory[self.pc as usize] as u16;
-        self.pc += 1;
-        let high = self.memory[self.pc as usize] as u16;
-        self.pc += 1;
-
-        let value = (high << 8) | low;
-        if opcode.d == 1 {
-            if opcode.w == 1 {
-                self.registers.get_reg16_from_opcode(opcode.reg);
-            } else {
-                self.registers.get_reg8_from_opcode(opcode.reg);
+    fn get_displacement(&mut self, opcode: &Opcode) -> u16 {
+        match opcode.m {
+            0b10 => {
+                let low = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                let high = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                (high << 8) | low
             }
-            print!(", [");
-            self.registers.get_mod(opcode.rm);
-            if value != 0 {
-                print!(" + {}", value);
+            0b1 => {
+                let value = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                value
             }
-            println!("]")
-        } else {
-            print!("[");
-            self.registers.get_mod(opcode.rm);
-            if value != 0 {
-                print!(" + {}", value);
-            }
-            print!("], ");
-            if opcode.w == 1 {
-                self.registers.get_reg16_from_opcode(opcode.reg);
-            } else {
-                self.registers.get_reg8_from_opcode(opcode.reg);
-            }
-            println!();
-        }
-    }
-
-    fn mov_memory_8(&mut self, opcode: Opcode) {
-        print!("mov ");
-        let value = self.memory[self.pc as usize];
-        self.pc += 1;
-        if opcode.d == 1 {
-            if opcode.w == 1 {
-                self.registers.get_reg16_from_opcode(opcode.reg);
-            } else {
-                self.registers.get_reg8_from_opcode(opcode.reg);
-            }
-            print!(", [");
-            self.registers.get_mod(opcode.rm);
-            if value != 0 {
-                print!(" + {}", value);
-            }
-            println!("]")
-        } else {
-            print!("[");
-            self.registers.get_mod(opcode.rm);
-            if value != 0 {
-                print!(" + {}", value);
-            }
-            print!("], ");
-            if opcode.w == 1 {
-                self.registers.get_reg16_from_opcode(opcode.reg);
-            } else {
-                self.registers.get_reg8_from_opcode(opcode.reg);
-            }
-            println!();
+            _ => 0,
         }
     }
 
     fn mov_memory(&mut self, opcode: Opcode) {
         print!("mov ");
+        let value = self.get_displacement(&opcode);
         if opcode.d == 1 {
             if opcode.w == 1 {
                 self.registers.get_reg16_from_opcode(opcode.reg);
             } else {
                 self.registers.get_reg8_from_opcode(opcode.reg);
             }
-            print!(", [");
-            self.registers.get_mod(opcode.rm);
-            println!("]")
+            print!(", ");
+            self.registers.get_mem(opcode.rm, value);
         } else {
-            print!("[");
-            self.registers.get_mod(opcode.rm);
-            print!("], ");
+            self.registers.get_mem(opcode.rm, value);
+            print!(", ");
             if opcode.w == 1 {
                 self.registers.get_reg16_from_opcode(opcode.reg);
             } else {
                 self.registers.get_reg8_from_opcode(opcode.reg);
             }
-            println!();
         }
+        println!();
     }
 
     fn mov16(&mut self, opcode: Opcode) {
