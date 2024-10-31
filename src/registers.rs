@@ -33,7 +33,8 @@ impl Registers {
         }
     }
 
-    pub fn get_mod(&mut self, rm: u8) {
+    pub fn get_mem(&mut self, rm: u8, value: u16) {
+        print!("[");
         match rm {
             0b000 => print!("bx + si"),
             0b001 => print!("bx + di"),
@@ -45,6 +46,10 @@ impl Registers {
             0b111 => print!("bx"),
             _ => print!("Unknow mod {:b}", rm),
         }
+        if value != 0 {
+            print!("+ {}", value);
+        }
+        print!("]");
     }
 
     pub fn get_reg8_from_opcode(&mut self, opcode: u8) {
