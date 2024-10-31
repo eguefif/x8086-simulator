@@ -21,14 +21,109 @@ impl Cpu {
         println!();
         loop {
             let opcode: Opcode = self.get_opcode();
-            match (opcode.instruction, opcode.w) {
-                (0b100010, 0) => self.mov8(opcode),
-                (0b100010, 1) => self.mov16(opcode),
+            match (opcode.instruction, opcode.w, opcode.m) {
+                (0b100010, 0, 0b11) => self.mov8(opcode),
+                (0b100010, 1, 0b11) => self.mov16(opcode),
+                (0b100010, _, 0b0) => self.mov_memory(opcode),
+                (0b100010, _, 0b01) => self.mov_memory_8(opcode),
+                (0b100010, _, 0b10) => self.mov_memory_16(opcode),
                 _ => println!("Unknow opcode: {:?}", opcode),
             }
             if self.pc == 0xFFF || self.memory[self.pc as usize] == 0 {
                 break;
             }
+        }
+    }
+
+    fn mov_memory_16(&mut self, opcode: Opcode) {
+        print!("mov ");
+        let low = self.memory[self.pc as usize] as u16;
+        self.pc += 1;
+        let high = self.memory[self.pc as usize] as u16;
+        self.pc += 1;
+
+        let value = (high << 8) | low;
+        if opcode.d == 1 {
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            print!(", [");
+            self.registers.get_mod(opcode.rm);
+            if value != 0 {
+                print!(" + {}", value);
+            }
+            println!("]")
+        } else {
+            print!("[");
+            self.registers.get_mod(opcode.rm);
+            if value != 0 {
+                print!(" + {}", value);
+            }
+            print!("], ");
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            println!();
+        }
+    }
+
+    fn mov_memory_8(&mut self, opcode: Opcode) {
+        print!("mov ");
+        let value = self.memory[self.pc as usize];
+        self.pc += 1;
+        if opcode.d == 1 {
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            print!(", [");
+            self.registers.get_mod(opcode.rm);
+            if value != 0 {
+                print!(" + {}", value);
+            }
+            println!("]")
+        } else {
+            print!("[");
+            self.registers.get_mod(opcode.rm);
+            if value != 0 {
+                print!(" + {}", value);
+            }
+            print!("], ");
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            println!();
+        }
+    }
+
+    fn mov_memory(&mut self, opcode: Opcode) {
+        print!("mov ");
+        if opcode.d == 1 {
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            print!(", [");
+            self.registers.get_mod(opcode.rm);
+            println!("]")
+        } else {
+            print!("[");
+            self.registers.get_mod(opcode.rm);
+            print!("], ");
+            if opcode.w == 1 {
+                self.registers.get_reg16_from_opcode(opcode.reg);
+            } else {
+                self.registers.get_reg8_from_opcode(opcode.reg);
+            }
+            println!();
         }
     }
 
