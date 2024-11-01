@@ -22,6 +22,7 @@ impl Cpu {
         loop {
             let opcode: Opcode = self.get_opcode();
             match (opcode.instruction, opcode.w, opcode.m) {
+                (0b1011, _, 0) => self.mov_imm(opcode),
                 (0b100010, 0, 0b11) => self.mov8(opcode),
                 (0b100010, 1, 0b11) => self.mov16(opcode),
                 (0b100010, _, _) => self.mov_memory(opcode),
@@ -31,6 +32,31 @@ impl Cpu {
                 break;
             }
         }
+    }
+
+    fn mov_imm(&mut self, opcode: Opcode) {
+        print!("mov ");
+        let value = match opcode.w {
+            0 => {
+                let value = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                value as i16
+            }
+            1 => {
+                let low = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                let high = self.memory[self.pc as usize] as u16;
+                self.pc += 1;
+                ((high << 8) | low) as i16
+            }
+            _ => 0,
+        };
+        if opcode.w == 0 {
+            self.registers.get_reg8_from_opcode(opcode.reg);
+        } else {
+            self.registers.get_reg16_from_opcode(opcode.reg);
+        }
+        println!(", {}", value);
     }
 
     fn get_displacement(&mut self, opcode: &Opcode) -> u16 {
@@ -104,9 +130,10 @@ impl Cpu {
 
     fn get_opcode(&mut self) -> Opcode {
         let position = self.pc as usize;
-        self.pc += 2;
         let opcode = (self.memory[position] as u16) << 8 | self.memory[position + 1] as u16;
-        Opcode::new(opcode)
+        let retval = Opcode::new(opcode);
+        self.pc += retval.pc_displacement;
+        retval
     }
 }
 

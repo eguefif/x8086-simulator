@@ -6,17 +6,35 @@ pub struct Opcode {
     pub m: u8,
     pub reg: u8,
     pub rm: u8,
+    pub pc_displacement: u16,
 }
 
 impl Opcode {
     pub fn new(opcode: u16) -> Opcode {
-        Opcode {
-            instruction: (opcode >> 10 & 0b0011_1111) as u8,
-            d: (opcode >> 9 & 1) as u8,
-            w: (opcode >> 8 & 1) as u8,
-            m: (opcode >> 6 & 0b11) as u8,
-            reg: (opcode >> 3 & 0b111) as u8,
-            rm: (opcode & 0b111) as u8,
+        let b4_instruction = opcode >> 12 & 0b0000_1111;
+        let b6_instruction = opcode >> 10 & 0b0011_1111;
+
+        if b4_instruction == 0b1011 {
+            let byte1 = (opcode >> 8) as u8;
+            Opcode {
+                instruction: b4_instruction as u8,
+                d: 0,
+                w: byte1 >> 3 & 1,
+                m: 0,
+                reg: byte1 & 0b0000_0111,
+                rm: 0,
+                pc_displacement: 1,
+            }
+        } else {
+            Opcode {
+                instruction: b6_instruction as u8,
+                d: (opcode >> 9 & 1) as u8,
+                w: (opcode >> 8 & 1) as u8,
+                m: (opcode >> 6 & 0b11) as u8,
+                reg: (opcode >> 3 & 0b111) as u8,
+                rm: (opcode & 0b111) as u8,
+                pc_displacement: 2,
+            }
         }
     }
 }
